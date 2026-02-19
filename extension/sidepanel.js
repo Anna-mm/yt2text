@@ -108,8 +108,32 @@ async function getVideoTitle(tab) {
   return tabTitle;
 }
 
+// ── 本地缓存 ──
+function cacheKey(videoId) { return `yt2text_cache_${videoId}`; }
+
+async function saveToCache(videoId, content, timing) {
+  await chrome.storage.local.set({ [cacheKey(videoId)]: { content, timing, savedAt: Date.now() } });
+}
+
+async function loadFromCache(videoId) {
+  const data = await chrome.storage.local.get([cacheKey(videoId)]);
+  return data[cacheKey(videoId)] || null;
+}
+
 // ── 恢复任务状态 ──
 async function restoreTaskState() {
+  // 优先检查本地缓存
+  const cached = await loadFromCache(currentVideoId);
+  if (cached && cached.content) {
+    showResult(cached.content);
+    applyStatus('done');
+    formattingStatus.classList.remove('hidden');
+    formattingStatus.textContent = '✅ 已缓存';
+    formattingStatus.className = 'formatting-status done';
+    return;
+  }
+
+  // 没有缓存 → 检查服务器上是否有正在进行的任务
   const data = await chrome.storage.local.get(['yt2text_task']);
   const saved = data.yt2text_task;
   if (saved && saved.videoId === currentVideoId && saved.taskId) {
@@ -122,7 +146,6 @@ async function restoreTaskState() {
         if (task.status === 'done') {
           if (task.content) showResult(task.content);
           updateFormattingStatus(task.formatting, task.formatting_progress, task.elapsed, task.timing);
-          // 格式化还在进行中 → 继续轮询
           if (task.formatting === 'in_progress' || task.formatting === 'pending') {
             startPolling();
           }
@@ -226,7 +249,11 @@ async function pollTask() {
       if (task.content) showResult(task.content);
       updateFormattingStatus(task.formatting, task.formatting_progress, task.elapsed, task.timing);
 
-      // 格式化完成或失败 → 停止轮询
+      // 格式化完成 → 缓存到本地
+      if (task.formatting === 'done' && task.content && currentVideoId) {
+        saveToCache(currentVideoId, task.content, task.timing);
+      }
+
       if (task.formatting === 'done' || task.formatting === 'failed' || !task.formatting) {
         stopPolling();
       }
@@ -339,26 +366,39 @@ function resetUI() {
 
 // ── 下载 ──
 async function onDownload() {
-  const data = await chrome.storage.local.get(['yt2text_task']);
-  const saved = data.yt2text_task;
-  if (!saved?.taskId) return;
-
   const title = (videoTitle.textContent || '转录结果').replace(/[\\/*?:"<>|]/g, '');
   btnDownload.disabled = true;
   btnDownload.textContent = '⏳ 下载中...';
 
   try {
-    // 下载转录 MD 文件
-    await chrome.downloads.download({
-      url: `${API_BASE}/api/tasks/${saved.taskId}/download/transcript`,
-      filename: `${title}.md`,
-    });
+    const data = await chrome.storage.local.get(['yt2text_task']);
+    const saved = data.yt2text_task;
+    const hasServerTask = saved?.taskId && saved.videoId === currentVideoId;
 
-    // 下载音频文件
-    await chrome.downloads.download({
-      url: `${API_BASE}/api/tasks/${saved.taskId}/download/audio`,
-      filename: `${title}.opus`,
-    });
+    // 下载转录 MD 文件（优先从服务器，fallback 到本地缓存）
+    if (hasServerTask) {
+      await chrome.downloads.download({
+        url: `${API_BASE}/api/tasks/${saved.taskId}/download/transcript`,
+        filename: `${title}.md`,
+      });
+    } else {
+      const cached = await loadFromCache(currentVideoId);
+      if (cached?.content) {
+        const blob = new Blob([cached.content], { type: 'text/markdown;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+        await chrome.downloads.download({ url: blobUrl, filename: `${title}.md` });
+      }
+    }
+
+    // 下载音频文件（仅服务器有时才下载）
+    if (hasServerTask) {
+      try {
+        await chrome.downloads.download({
+          url: `${API_BASE}/api/tasks/${saved.taskId}/download/audio`,
+          filename: `${title}.opus`,
+        });
+      } catch {}
+    }
 
     btnDownload.textContent = '✅ 已下载';
   } catch (err) {
