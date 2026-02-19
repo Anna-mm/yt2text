@@ -16,6 +16,7 @@ import threading
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from downloader import download_audio, DownloadError
@@ -76,6 +77,7 @@ def _run_task(task_id: str, url: str, browser: str | None, cookies: list | None)
         tasks[task_id]["status"] = "downloading"
         t0 = time.time()
         audio_path = download_audio(url, browser=browser, cookies=cookies, title=tasks[task_id].get("title"))
+        tasks[task_id]["audio_path"] = str(audio_path)
         timing["download"] = round(time.time() - t0, 1)
         print(f"⏱️ 下载耗时: {timing['download']}s")
 
@@ -163,6 +165,7 @@ def _create_task(url: str, title: str | None, browser: str | None,
         "formatting_progress": None,
         "elapsed": None,
         "timing": None,
+        "audio_path": None,
         "error": None,
     }
     _process_next()
@@ -191,7 +194,7 @@ def batch_process(req: BatchRequest):
     return {"task_ids": task_ids}
 
 
-_HIDDEN_FIELDS = {"cookies", "browser"}
+_HIDDEN_FIELDS = {"cookies", "browser", "audio_path"}
 
 def _safe_task(task: dict) -> dict:
     """返回任务信息，过滤掉敏感字段"""
@@ -210,6 +213,36 @@ def get_task(task_id: str):
     if task_id not in tasks:
         return {"error": "task not found"}
     return _safe_task(tasks[task_id])
+
+
+@app.get("/api/tasks/{task_id}/download/audio")
+def download_audio_file(task_id: str):
+    """下载音频文件"""
+    if task_id not in tasks:
+        return {"error": "task not found"}
+    task = tasks[task_id]
+    audio = task.get("audio_path")
+    if not audio or not Path(audio).exists():
+        return {"error": "audio file not available"}
+    return FileResponse(audio, filename=Path(audio).name, media_type="audio/mpeg")
+
+
+@app.get("/api/tasks/{task_id}/download/transcript")
+def download_transcript(task_id: str):
+    """下载转录 Markdown 文件"""
+    if task_id not in tasks:
+        return {"error": "task not found"}
+    task = tasks[task_id]
+    content = task.get("content")
+    if not content:
+        return {"error": "transcript not available"}
+    title = task.get("title", "transcript")
+    filename = title.replace("/", "_").replace("\\", "_") + ".md"
+    return Response(
+        content=content.encode("utf-8"),
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.get("/api/health")

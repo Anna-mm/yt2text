@@ -3,7 +3,7 @@
   "name": "YoubeScript",
   "version": "2.0.0",
   "description": "YouTube 视频一键转文字，右侧面板显示",
-  "permissions": ["activeTab", "sidePanel", "tabs", "storage", "cookies", "scripting"],
+  "permissions": ["activeTab", "sidePanel", "tabs", "storage", "cookies", "scripting", "downloads"],
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://*.youtube.com/*",

@@ -10,7 +10,7 @@ const notVideo = document.getElementById('not-video');
 const topBar = document.getElementById('top-bar');
 const resultSection = document.getElementById('result-section');
 const resultContent = document.getElementById('result-content');
-const btnCopy = document.getElementById('btn-copy');
+const btnDownload = document.getElementById('btn-download');
 const errorSection = document.getElementById('error-section');
 const errorMessage = document.getElementById('error-message');
 const formattingStatus = document.getElementById('formatting-status');
@@ -25,7 +25,7 @@ let pollingTimer = null;
 document.addEventListener('DOMContentLoaded', async () => {
   await detectVideo();
   btnAction.addEventListener('click', onAction);
-  btnCopy.addEventListener('click', onCopy);
+  btnDownload.addEventListener('click', onDownload);
 
   // 切换标签页
   chrome.tabs.onActivated.addListener(() => detectVideo());
@@ -245,16 +245,16 @@ async function pollTask() {
 function applyStatus(status) {
   if (status === 'done') {
     btnAction.classList.add('hidden');
-    btnCopy.classList.remove('hidden');
+    btnDownload.classList.remove('hidden');
   } else if (status === 'failed') {
     btnAction.classList.remove('hidden');
     btnAction.textContent = '重试';
     btnAction.className = 'btn-action';
     btnAction.disabled = false;
-    btnCopy.classList.add('hidden');
+    btnDownload.classList.add('hidden');
   } else {
     btnAction.classList.add('hidden');
-    btnCopy.classList.add('hidden');
+    btnDownload.classList.add('hidden');
 
     formattingStatus.classList.remove('hidden');
     formattingStatus.className = 'formatting-status';
@@ -329,7 +329,7 @@ function showError(msg) {
 function resetUI() {
   resultSection.classList.add('hidden');
   errorSection.classList.add('hidden');
-  btnCopy.classList.add('hidden');
+  btnDownload.classList.add('hidden');
   formattingStatus.classList.add('hidden');
   btnAction.textContent = '转录';
   btnAction.className = 'btn-action';
@@ -337,25 +337,39 @@ function resetUI() {
   stopPolling();
 }
 
-// ── 复制 ──
-async function onCopy() {
+// ── 下载 ──
+async function onDownload() {
   const data = await chrome.storage.local.get(['yt2text_task']);
   const saved = data.yt2text_task;
-  if (saved?.taskId) {
-    try {
-      const res = await fetch(`${API_BASE}/api/tasks/${saved.taskId}`);
-      const task = await res.json();
-      if (task.content) {
-        await navigator.clipboard.writeText(task.content);
-        btnCopy.textContent = '✅ 已复制';
-        setTimeout(() => (btnCopy.textContent = '📋 复制'), 1500);
-        return;
-      }
-    } catch {}
+  if (!saved?.taskId) return;
+
+  const title = (videoTitle.textContent || '转录结果').replace(/[\\/*?:"<>|]/g, '');
+  btnDownload.disabled = true;
+  btnDownload.textContent = '⏳ 下载中...';
+
+  try {
+    // 下载转录 MD 文件
+    await chrome.downloads.download({
+      url: `${API_BASE}/api/tasks/${saved.taskId}/download/transcript`,
+      filename: `${title}.md`,
+    });
+
+    // 下载音频文件
+    await chrome.downloads.download({
+      url: `${API_BASE}/api/tasks/${saved.taskId}/download/audio`,
+      filename: `${title}.opus`,
+    });
+
+    btnDownload.textContent = '✅ 已下载';
+  } catch (err) {
+    console.error('下载失败:', err);
+    btnDownload.textContent = '❌ 下载失败';
   }
-  await navigator.clipboard.writeText(resultContent.innerText);
-  btnCopy.textContent = '✅ 已复制';
-  setTimeout(() => (btnCopy.textContent = '📋 复制'), 1500);
+
+  setTimeout(() => {
+    btnDownload.textContent = '⬇️ 下载';
+    btnDownload.disabled = false;
+  }, 2000);
 }
 
 // ── Markdown 渲染 ──
