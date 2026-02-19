@@ -28,6 +28,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   color: #222;
+  padding: 6px;
 }
 
 .truncate {
@@ -67,20 +68,14 @@ body {
   font-size: 14px;
   color: #1a73e8;
   white-space: nowrap;
-  animation: pulse 1.5s ease-in-out infinite;
 }
-.formatting-status.done { color: #4caf50; animation: none; }
-.formatting-status.failed { color: #e53935; animation: none; }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+.formatting-status.done { color: #4caf50; }
+.formatting-status.failed { color: #e53935; }
 .btn-tool {
   border: none;
   background: none;
-  font-size: 12px;
-  color: #888;
+  font-size: 14px;
+  color: #1a73e8;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;

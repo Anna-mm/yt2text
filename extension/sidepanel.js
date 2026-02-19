@@ -126,7 +126,8 @@ async function restoreTaskState() {
   const cached = await loadFromCache(currentVideoId);
   if (cached && cached.content) {
     showResult(cached.content);
-    applyStatus('done');
+    btnAction.classList.add('hidden');
+    btnDownload.classList.add('hidden');
     formattingStatus.classList.remove('hidden');
     formattingStatus.textContent = '✅ 已缓存';
     formattingStatus.className = 'formatting-status done';
@@ -371,45 +372,38 @@ async function onDownload() {
   btnDownload.textContent = '⏳ 下载中...';
 
   try {
-    const data = await chrome.storage.local.get(['yt2text_task']);
-    const saved = data.yt2text_task;
-    const hasServerTask = saved?.taskId && saved.videoId === currentVideoId;
-
-    // 下载转录 MD 文件（优先从服务器，fallback 到本地缓存）
-    if (hasServerTask) {
-      await chrome.downloads.download({
-        url: `${API_BASE}/api/tasks/${saved.taskId}/download/transcript`,
-        filename: `${title}.md`,
-      });
+    // 获取内容：优先从缓存，其次从服务器任务
+    let content = '';
+    const cached = await loadFromCache(currentVideoId);
+    if (cached?.content) {
+      content = cached.content;
     } else {
-      const cached = await loadFromCache(currentVideoId);
-      if (cached?.content) {
-        const blob = new Blob([cached.content], { type: 'text/markdown;charset=utf-8' });
-        const blobUrl = URL.createObjectURL(blob);
-        await chrome.downloads.download({ url: blobUrl, filename: `${title}.md` });
+      const data = await chrome.storage.local.get(['yt2text_task']);
+      const saved = data.yt2text_task;
+      if (saved?.taskId) {
+        const res = await fetch(`${API_BASE}/api/tasks/${saved.taskId}`);
+        const task = await res.json();
+        if (task?.content) content = task.content;
       }
     }
 
-    // 下载音频文件（仅服务器有时才下载）
-    if (hasServerTask) {
-      try {
-        await chrome.downloads.download({
-          url: `${API_BASE}/api/tasks/${saved.taskId}/download/audio`,
-          filename: `${title}.opus`,
-        });
-      } catch {}
+    if (!content) {
+      btnDownload.textContent = '❌ 无内容';
+      setTimeout(() => { btnDownload.textContent = '⬇️ 下载'; btnDownload.disabled = false; }, 2000);
+      return;
     }
 
+    const filename = `youtube/${title}.md`;
+    const dataUrl = 'data:text/markdown;charset=utf-8,' + encodeURIComponent(content);
+    await chrome.downloads.download({ url: dataUrl, filename });
+
     btnDownload.textContent = '✅ 已下载';
+    btnDownload.disabled = true;
   } catch (err) {
     console.error('下载失败:', err);
     btnDownload.textContent = '❌ 下载失败';
-  }
-
-  setTimeout(() => {
-    btnDownload.textContent = '⬇️ 下载';
     btnDownload.disabled = false;
-  }, 2000);
+  }
 }
 
 // ── Markdown 渲染 ──
