@@ -1,0 +1,11 @@
+{
+  "name": "yt2text",
+  "version": "1.0.0",
+  "description": "YouTube to text transcription",
+  "scripts": {
+    "find-chapters": "node scripts/find_youtube_chapters.js"
+  },
+  "dependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}

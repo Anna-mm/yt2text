@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YoubeScript</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <!-- 顶栏：标题 + 所有操作集中在一行 -->
+  <div id="top-bar">
+    <span id="video-title" class="truncate">检测视频中...</span>
+    <span id="formatting-status" class="formatting-status hidden"></span>
+    <button id="btn-copy" class="btn-tool hidden" title="复制 Markdown 原文">📋 复制</button>
+    <button id="btn-action" class="btn-action" disabled>转录</button>
+  </div>
+
+  <!-- 非视频页提示 -->
+  <div id="not-video" class="center-msg hidden">
+    <p>📺 请打开 YouTube 视频页面</p>
+  </div>
+
+  <!-- 转录结果 -->
+  <div id="result-section" class="hidden">
+    <div id="result-content" class="markdown-body"></div>
+  </div>
+
+  <!-- 错误 -->
+  <div id="error-section" class="center-msg hidden">
+    <p id="error-message"></p>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

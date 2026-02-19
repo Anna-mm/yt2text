@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YoubeScript</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- 头部 -->
+  <header>
+    <h1>📝 YoubeScript</h1>
+    <p class="subtitle">YouTube 视频 → 文字</p>
+  </header>
+
+  <!-- 后端连接状态 -->
+  <div id="server-status" class="status-bar status-checking">
+    🔄 检查后端服务...
+  </div>
+
+  <!-- 主操作按钮 -->
+  <div class="actions">
+    <button id="btn-extract" class="btn btn-primary" disabled>
+      🔍 提取当前页面所有视频
+    </button>
+  </div>
+
+  <!-- 视频列表区域 -->
+  <div id="video-section" class="hidden">
+    <!-- 批量操作栏 -->
+    <div class="batch-bar">
+      <label class="checkbox-label">
+        <input type="checkbox" id="select-all">
+        <span id="video-count">0 个视频</span>
+      </label>
+      <button id="btn-batch" class="btn btn-accent" disabled>
+        ⚡ 批量下载并转录
+      </button>
+    </div>
+
+    <!-- 视频列表 -->
+    <ul id="video-list"></ul>
+  </div>
+
+  <!-- 空状态 -->
+  <div id="empty-state" class="hidden">
+    <p>😕 当前页面未找到视频</p>
+    <p class="hint">请打开 YouTube 频道的「视频」标签页后再试</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

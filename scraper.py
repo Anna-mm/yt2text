@@ -9,6 +9,7 @@ def extract_video_urls(page_url: str, browser: str = None, limit: int = None) ->
     """
     command = [
         "yt-dlp",
+        "--remote-components", "ejs:github",
         "--flat-playlist",
         "--print", "url",
         page_url,

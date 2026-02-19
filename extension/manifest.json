@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "YoubeScript",
+  "version": "2.0.0",
+  "description": "YouTube 视频一键转文字，右侧面板显示",
+  "permissions": ["activeTab", "sidePanel", "tabs", "storage", "cookies", "scripting"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://*.youtube.com/*",
+    "http://localhost:8765/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
