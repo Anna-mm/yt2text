@@ -7,7 +7,7 @@
   "host_permissions": [
     "https://www.youtube.com/*",
     "https://*.youtube.com/*",
-    "http://localhost:8765/*"
+    "https://yt2text-production.up.railway.app/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -22,6 +22,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY server.py downloader.py transcriber.py scraper.py ./
 
-EXPOSE 8765
-
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8765"]
+CMD uvicorn server:app --host 0.0.0.0 --port ${PORT:-8765}

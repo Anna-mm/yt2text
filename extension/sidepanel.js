@@ -1,6 +1,6 @@
 // sidepanel.js — 极简版
 
-const API_BASE = 'http://localhost:8765';
+const API_BASE = 'https://yt2text-production.up.railway.app';
 const POLL_INTERVAL = 1000;
 
 // ── DOM ──
@@ -117,7 +117,7 @@ async function restoreTaskState() {
     try {
       const res = await fetch(`${API_BASE}/api/tasks/${taskId}`);
       const task = await res.json();
-      if (task && !task.error) {
+      if (task && !task.error && task.status) {
         applyStatus(task.status);
         if (task.status === 'done') {
           if (task.content) showResult(task.content);
@@ -212,6 +212,14 @@ async function pollTask() {
   try {
     const res = await fetch(`${API_BASE}/api/tasks/${taskId}`);
     const task = await res.json();
+
+    // 服务器重启后任务丢失
+    if (task.error === 'task not found') {
+      stopPolling();
+      showError('服务器已重启，任务丢失，请重新转录');
+      return;
+    }
+
     applyStatus(task.status);
 
     if (task.status === 'done') {
